@@ -28,6 +28,7 @@ class Loader:
     def getLoadingTime(self, truckType):
         return (math.floor(truckType.capacity/self.bucketCap)+1)*self.swingTime+self.truckSetupTime
     
+    #returns the cycle time any truck takes to go from the loader to the destination point and then back
     def getCycleTime(self):
         return self.truckCycleTime
 
@@ -47,6 +48,8 @@ class Fleet:
     def addLoader(self, loader):
         self.loaders += [loader]
 
+    #this function uses integer programming to solve the match factor problem
+    #Also calls functions at the end to format and display output
     def optimize(self,desiredMF=1):
         [A,B,C] = self.makeSolverMatrices(desiredMF)
         print("A matrix (rounded) *********************************************************")
@@ -90,6 +93,7 @@ class Fleet:
         #solves IP problem
         status = lp.Solve()
 
+        #Displays IP solver results. Useful for troubleshooting
         if status == pywraplp.Solver.OPTIMAL:
             print('Objective value =', lp.Objective().Value())
             for j in range(numVar):
@@ -104,6 +108,7 @@ class Fleet:
         self.printMatchFactors(x)
         self.printAssignmentMatrix()
 
+    #creates an easy to interpret assignemtn matrix from the complicated variable vector
     def parseAssignmentMatrix(self,x):
         self.assignmentMatrix = np.zeros([self.numTruckTypes(),self.numLoaders()])
         i = 0
@@ -112,6 +117,8 @@ class Fleet:
                 self.assignmentMatrix[r,c] = x[i].solution_value()
                 i = i + 1
         
+    #creates the classic Ax=b, Min/Max xc matrices for a linear program
+    #Consult the documentation for how the constraints and variables are formulated
     def makeSolverMatrices(self,desiredMF=1):
         numLoaders = self.numLoaders()
         numTruckTypes = self.numTruckTypes()
@@ -163,12 +170,16 @@ class Fleet:
 
         return [A,B,C]
     
+
     def printAssignmentMatrix(self):
         print("Assignment Matrix *******************************************************")
         print(str(["RESULT"]+[l.getName() for l in self.loaders]))
         for r in range(self.numTruckTypes()):
             print([str(self.truckFleet[r][0].getName())]+list(self.assignmentMatrix[r,:]))
     
+    #Displays the result of IP solver in terms of match factor
+    #THis is not match factor per se, but rather the absolute value of the deviation
+    #from the desired match factor inputted into the optimize() function. The default MF is 1
     def printMatchFactors(self,x):
         print("Match Factors *******************************************************")
         print(str(["MF DELTAS"]+[l.getName() for l in self.loaders]))
@@ -179,9 +190,10 @@ class Fleet:
             mfs += [round(x[i].solution_value(),3)]
         print(["(Desired MF +/-)"]+mfs)
                 
+    #helper functions to calculate commonly used values
     def numLoaders(self):
         return len(self.loaders)
-    
+
     def numTruckTypes(self):
         return len(self.truckFleet)
 
@@ -191,8 +203,10 @@ class Fleet:
     def numConstraints(self):
         return self.numTruckTypes()+2*self.numLoaders()
 
+    #keymatrix is a helper matrix to identify which truck and loader each variable is related to.
+    #since variables refer to a truck-loader pair, when the variables are listed in 1D order,
+    #it can be difficult to know which truck-loader pair a variable is for. This is an index for that.
     def keyMatrix(self):
-        #keymatrix is a helper matrix to identify which truck and loader each variable is related to
         keyMatrix = np.zeros([self.numVar(), 2])
         i = 0
         for t in range(self.numTruckTypes()):
