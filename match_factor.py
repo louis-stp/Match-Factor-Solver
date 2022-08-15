@@ -1,3 +1,4 @@
+from unicodedata import name
 from ortools.linear_solver import pywraplp
 import numpy as np
 import math
@@ -11,9 +12,13 @@ class TruckType:
     def getCapacity(self):
         return self.capacity
 
+    def getName(self):
+        return self.name
+
 #this class is used to create unique loader objects
 class Loader:
     def __init__(self, name, bucketCap, swingTime, truckSetupTime, truckCycleTime):
+        self.name = name
         self.bucketCap = bucketCap
         self.swingTime = swingTime
         self.truckSetupTime = truckSetupTime
@@ -26,13 +31,15 @@ class Loader:
     def getCycleTime(self):
         return self.truckCycleTime
 
+    def getName(self):
+        return self.name
 
 #this class combines different trucktypes and loaders and calculates optimal assignments
 class Fleet:
     def __init__(self):
         self.truckFleet = []
         self.loaders = []
-        self.assignments = []
+        self.assignmentMatrix = []
 
     def addTrucks(self, truckType, numTrucks):
         self.truckFleet += [[truckType,numTrucks]]
@@ -40,12 +47,17 @@ class Fleet:
     def addLoader(self, loader):
         self.loaders += [loader]
 
-    def optimize(self):
-        [A,B,C] = self.makeMatrices()
-        print(A)
+    def optimize(self,desiredMF=1):
+        [A,B,C] = self.makeSolverMatrices(desiredMF)
+        print("A matrix (rounded) *********************************************************")
+        print(np.round(A,3))
+        print("b matrix *******************************************************************")
         print(B)
+        print("c matrix *******************************************************************")
         print(C)
-        [numConstraints, numVar] = A.shape
+        print("Solver Results *************************************************************")
+        numConstraints = self.numConstraints()
+        numVar = self.numVar()
 
         lp = pywraplp.Solver.CreateSolver('SCIP')
         infinity = lp.infinity()
@@ -58,7 +70,6 @@ class Fleet:
                 x[j] = lp.IntVar(0, infinity, 'x[%i]' % j)
             else:
                 x[j] = lp.NumVar(0, infinity, 'x[%i]' % j)
-        print('Number of variables =', lp.NumVariables())
 
         #define constraints
         for i in range(numConstraints):
@@ -69,7 +80,6 @@ class Fleet:
                 constraint = lp.RowConstraint(0, B[i], '')
             for j in range(numVar):
                 constraint.SetCoefficient(x[j], A[i,j])
-        print('Number of constraints =', lp.NumConstraints())
 
         #sets up objective function
         objective = lp.Objective()
@@ -84,21 +94,30 @@ class Fleet:
             print('Objective value =', lp.Objective().Value())
             for j in range(numVar):
                 print(x[j].name(), ' = ', x[j].solution_value())
-            print()
             print('Problem solved in %f milliseconds' % lp.wall_time())
             print('Problem solved in %d iterations' % lp.iterations())
             print('Problem solved in %d branch-and-bound nodes' % lp.nodes())
         else:
             print('The problem does not have an optimal solution.')
-
         
-    def makeMatrices(self):
-        numLoaders = len(self.loaders)
-        numTruckTypes = len(self.truckFleet)
-        numVar = numLoaders+numLoaders*numTruckTypes
-        numConstraints = numTruckTypes+2*numLoaders
+        self.parseAssignmentMatrix(x)
+        self.printMatchFactors(x)
+        self.printAssignmentMatrix()
 
-        desiredMF = 1
+    def parseAssignmentMatrix(self,x):
+        self.assignmentMatrix = np.zeros([self.numTruckTypes(),self.numLoaders()])
+        i = 0
+        for r in range(self.numTruckTypes()):
+            for c in range(self.numLoaders()):
+                self.assignmentMatrix[r,c] = x[i].solution_value()
+                i = i + 1
+        
+    def makeSolverMatrices(self,desiredMF=1):
+        numLoaders = self.numLoaders()
+        numTruckTypes = self.numTruckTypes()
+        numVar = self.numVar()
+        numConstraints = self.numConstraints()
+
         A = np.zeros([numConstraints,numVar])
         B = np.zeros(numConstraints)
         C = np.zeros(numVar)
@@ -107,17 +126,7 @@ class Fleet:
             C[i] = 1
 
         #keymatrix is a helper matrix to identify which truck and loader each variable is related to
-        keyMatrix = np.zeros([numVar, 2])
-        i = 0
-        for t in range(numTruckTypes):
-            for l in range(numLoaders):
-                keyMatrix[i,0] = t
-                keyMatrix[i,1] = l
-                i = i + 1
-        #negative numbers are used to indicate the variable is a delta variable and not associated with truck or loader
-        for i in range(numTruckTypes*numLoaders,numVar):
-            keyMatrix[i,0] = -1
-            keyMatrix[i,1] = -1
+        keyMatrix = self.keyMatrix()
 
         #adds the sum(trucks) <= maxTrucks constraints for each truck type
         for t in range(numTruckTypes):
@@ -153,16 +162,56 @@ class Fleet:
                 B[i] = -1*desiredMF
 
         return [A,B,C]
-
-        
-        #make truck model number constraint rows
-
-fleet = Fleet()
-fleet.addTrucks(TruckType("CAT797",400), 5000)
-fleet.addTrucks(TruckType("CAT777",100), 4000)
-fleet.addTrucks(TruckType("CAT787",200), 3000)
-fleet.addLoader(Loader("Bucyrus_1",55,30,60,2000))
-fleet.addLoader(Loader("Bucyrus_2",55,30,60,1500))
-fleet.optimize()
-
     
+    def printAssignmentMatrix(self):
+        print("Assignment Matrix *******************************************************")
+        print(str(["RESULT"]+[l.getName() for l in self.loaders]))
+        for r in range(self.numTruckTypes()):
+            print([str(self.truckFleet[r][0].getName())]+list(self.assignmentMatrix[r,:]))
+    
+    def printMatchFactors(self,x):
+        print("Match Factors *******************************************************")
+        print(str(["MF DELTAS"]+[l.getName() for l in self.loaders]))
+        #pulls out the match factors deltas from the IP solution
+        #these are the absolute value of the difference of 
+        mfs = []
+        for i in range(self.numTruckTypes()*self.numLoaders(),self.numVar()):
+            mfs += [round(x[i].solution_value(),3)]
+        print(["(Desired MF +/-)"]+mfs)
+                
+    def numLoaders(self):
+        return len(self.loaders)
+    
+    def numTruckTypes(self):
+        return len(self.truckFleet)
+
+    def numVar(self):
+        return self.numLoaders()+self.numLoaders()*self.numTruckTypes()
+
+    def numConstraints(self):
+        return self.numTruckTypes()+2*self.numLoaders()
+
+    def keyMatrix(self):
+        #keymatrix is a helper matrix to identify which truck and loader each variable is related to
+        keyMatrix = np.zeros([self.numVar(), 2])
+        i = 0
+        for t in range(self.numTruckTypes()):
+            for l in range(self.numLoaders()):
+                keyMatrix[i,0] = t
+                keyMatrix[i,1] = l
+                i = i + 1
+        #negative numbers are used to indicate the variable is a delta variable and not associated with truck or loader
+        for i in range(self.numTruckTypes()*self.numLoaders(),self.numVar()):
+            keyMatrix[i,0] = -1
+            keyMatrix[i,1] = -1
+        return keyMatrix
+
+#TEST CASE
+#make truck model number constraint rows
+fleet = Fleet()
+fleet.addTrucks(TruckType(name="CAT797",capacity=430.4), numTrucks = 10)
+fleet.addTrucks(TruckType(name="CAT777",capacity=117.3), numTrucks = 5)
+fleet.addTrucks(TruckType(name="CAT787",capacity=233.3), numTrucks = 4)
+fleet.addLoader(Loader(name="Shovel_1",bucketCap=55,swingTime=30,truckSetupTime=60,truckCycleTime=2000))
+fleet.addLoader(Loader(name="Shovel_2",bucketCap=55,swingTime=30,truckSetupTime=60,truckCycleTime=1580))
+fleet.optimize(1.1)
