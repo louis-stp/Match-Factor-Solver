@@ -42,9 +42,9 @@ x - 1 <= d
 
 In this program, d is a variable, so it appears in the A matrix (Refer to Linear Programming for Ax <= b formulation for linear programs). Thus the constraints are modified to be:
 
-Minimize d:
-x - d <= 1
--x - d <= -1
+Minimize d:<br>
+x - d <= 1 <br>
+-x - d <= -1 <br>
 
 The above constraints are referred to as *Delta Constraints* in the code, and there are 2 per loader. There are also *Truck Constraints*, which simply limit the total number of trucks in the system to be below the provided maximums. There is 1 Truck Constraint per Truck Type.
 
