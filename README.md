@@ -84,13 +84,13 @@ Fleet requires no properties. TruckTypes and Loaders are added afterwards.
 
 ### Methods
 
-#### addTruck(TruckType truck, int maxOfTruckType)
+#### Fleet.addTrucks(TruckType truck, int maxOfTruckType)
 This is how you add a truckType to the network, and define the maximum number allowed for the given problem
 
-#### addLoader(Loader loader)
+#### Fleet.addLoader(Loader loader)
 Add a loader object to the fleet using this method.
 
-#### optimize(desiredMF (optional) )
+#### Fleet.optimize(desiredMF = 1 (defualt))
 Run the optimization function using this method. You can choose a desired match factor other than 1 by passing it into the function as a parameter.
 This method will print out the desired results
 
