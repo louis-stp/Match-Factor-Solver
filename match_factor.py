@@ -220,12 +220,3 @@ class Fleet:
             keyMatrix[i,1] = -1
         return keyMatrix
 
-#TEST CASE
-#make truck model number constraint rows
-fleet = Fleet()
-fleet.addTrucks(TruckType(name="CAT797",capacity=430.4), numTrucks = 10)
-fleet.addTrucks(TruckType(name="CAT777",capacity=117.3), numTrucks = 5)
-fleet.addTrucks(TruckType(name="CAT787",capacity=233.3), numTrucks = 4)
-fleet.addLoader(Loader(name="Shovel_1",bucketCap=55,swingTime=30,truckSetupTime=60,truckCycleTime=2000))
-fleet.addLoader(Loader(name="Shovel_2",bucketCap=55,swingTime=30,truckSetupTime=60,truckCycleTime=1580))
-fleet.optimize(1.1)
