@@ -1,6 +1,6 @@
 # Match Factor Solver
 
-A python module for computing the optimal assignment of trucks to loaders in a heterogeneus fleet. It optimizes the parameter referred to as Match Factor (MF), which roughly represents the productivity trucks divided by the productivity of the loader. 
+A python module for computing the optimal assignment of trucks to loaders in a heterogeneus fleet. It optimizes the parameter referred to as Match Factor (MF), which reduces lost production potential for both trucks and loaders.
 
 ## Table of Contents
 
