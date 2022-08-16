@@ -36,9 +36,9 @@ This module uses an Integer Program (IP) to solve for match factors for a system
 #### Constraints
 Since the objective is an absolute value, the program needs to be constructed in such a way to eliminate this absolute value from the objective function. It does this using two constraints to capture the difference. For example, if you want to minimize the absolute value the expression x-1, you create 2 constraints and formulate the objective function as follows:
 
-Minimize d:
-x - 1 <= d
-1 - x <= d
+Minimize d:<br>
+x - 1 <= d <br>
+1 - x <= d <br>
 
 In this program, d is a variable, so it appears in the A matrix (Refer to Linear Programming for Ax <= b formulation for linear programs). Thus the constraints are modified to be:
 
@@ -56,22 +56,35 @@ The objective is to minimize the sum of the delta variables. Assignment variable
 
 ## Usage
 
-Replace the contents of `README.md` with your project's:
+### Classes
+There are 3 classes in this project. TruckType, Loader, and Fleet. Fleet is the class where TruckTypes and Loaders are added to be optimized. A TruckType is a unique class of truck with unique properties. CAT 797 is a class of truck, and it could have a capacity of 400 tons in an example. A Loader is any distinct Loader in your network. Even if it is of the same model and type, it is added distinctly in the network.
 
-- Name
-- Description
-- Installation instructions
-- Usage instructions
-- Support instructions
-- Contributing instructions
-- Licence
+#### TruckType
+TruckType requires the following parameters: (name, capacity)
 
-Feel free to remove any sections that aren't applicable to your project.
+#### Loader
+Loaders requires the following parameters: (name, bucketCap, swingTime, truckSetupTime, truckCycleTime)
+
+#### Fleet
+Fleet requires no properties. TruckTypes and Loaders are added afterwards.
+
+### Methods
+
+#### addTruck(TruckType truck, int maxOfTruckType)
+This is how you add a truckType to the network, and define the maximum number allowed for the given problem
+
+#### addLoader(Loader loader)
+Add a loader object to the fleet using this method.
+
+#### optimize(desiredMF (optional) )
+Run the optimization function using this method. You can choose a desired match factor other than 1 by passing it into the function as a parameter.
+This method will print out the desired results
+
 
 ## Support
 
-Please [open an issue](https://github.com/fraction/readme-boilerplate/issues/new) for support.
+Please open an issue for support.
 
 ## Contributing
 
-Please contribute using [Github Flow](https://guides.github.com/introduction/flow/). Create a branch, add commits, and [open a pull request](https://github.com/fraction/readme-boilerplate/compare/).
+Please contribute using Github Flow. Create a branch, add commits, and open a pull request.
