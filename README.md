@@ -59,6 +59,20 @@ The objective is to minimize the sum of the delta variables. Assignment variable
 ### Classes
 There are 3 classes in this project. TruckType, Loader, and Fleet. Fleet is the class where TruckTypes and Loaders are added to be optimized. A TruckType is a unique class of truck with unique properties. CAT 797 is a class of truck, and it could have a capacity of 400 tons in an example. A Loader is any distinct Loader in your network. Even if it is of the same model and type, it is added distinctly in the network.
 
+### Example
+
+```sh
+#EXAMPLE CASE
+fleet = Fleet()
+fleet.addTrucks(TruckType(name="CAT797",capacity=430.4), numTrucks = 10)
+fleet.addTrucks(TruckType(name="CAT777",capacity=117.3), numTrucks = 5)
+fleet.addTrucks(TruckType(name="CAT787",capacity=233.3), numTrucks = 4)
+fleet.addLoader(Loader(name="Shovel_1",bucketCap=55,swingTime=30,truckSetupTime=60,truckCycleTime=2000))
+fleet.addLoader(Loader(name="Shovel_2",bucketCap=55,swingTime=30,truckSetupTime=60,truckCycleTime=1580))
+fleet.optimize(1.1)
+```
+
+
 #### TruckType
 TruckType requires the following parameters: (name, capacity)
 
